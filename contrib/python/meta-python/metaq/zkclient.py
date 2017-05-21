@@ -67,7 +67,7 @@ class ZKClient(object):
         self.handle = -1
 
         self.conn_cv.acquire()
-        if VERBOSE: print("Connecting to %s" % (servers))
+        if VERBOSE: print(("Connecting to %s" % (servers)))
         start = time.time()
         self.handle = zookeeper.init(servers, self.connection_watcher, timeout)
         self.conn_cv.wait(timeout/1000)
@@ -77,8 +77,8 @@ class ZKClient(object):
             raise ZKClientError("Unable to connect to %s" % (servers))
 
         if VERBOSE:
-            print("Connected in %d ms, handle is %d"
-                  % (int((time.time() - start) * 1000), self.handle))
+            print(("Connected in %d ms, handle is %d"
+                  % (int((time.time() - start) * 1000), self.handle)))
 
     def connection_watcher(self, h, type, state, path):
         self.handle = h
@@ -94,16 +94,16 @@ class ZKClient(object):
         start = time.time()
         result = zookeeper.create(self.handle, path, data, acl, flags)
         if VERBOSE:
-            print("Node %s created in %d ms"
-                  % (path, int((time.time() - start) * 1000)))
+            print(("Node %s created in %d ms"
+                  % (path, int((time.time() - start) * 1000))))
         return result
 
     def delete(self, path, version=-1):
         start = time.time()
         result = zookeeper.delete(self.handle, path, version)
         if VERBOSE:
-            print("Node %s deleted in %d ms"
-                  % (path, int((time.time() - start) * 1000)))
+            print(("Node %s deleted in %d ms"
+                  % (path, int((time.time() - start) * 1000))))
         return result
 
     def get(self, path, watcher=None):
@@ -170,8 +170,8 @@ class CountingWatcher(object):
     def __call__(self, handle, typ, state, path):
         self.count += 1
         if VERBOSE:
-            print("handle %d got watch for %s in watcher %d, count %d" %
-                  (handle, path, self.id, self.count))
+            print(("handle %d got watch for %s in watcher %d, count %d" %
+                  (handle, path, self.id, self.count)))
 
 """Callable watcher that counts the number of notifications
 and verifies that the paths are sequential"""

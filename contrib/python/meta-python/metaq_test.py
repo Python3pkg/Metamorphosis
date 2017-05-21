@@ -3,6 +3,7 @@ from metaq.producer import Message,MessageProducer,JavaInt,Partition,_Error,get_
 import unittest
 import struct
 import time
+import collections
 
 class JavaIntTest(unittest.TestCase):
     def runTest(self):
@@ -24,7 +25,7 @@ class PartitionTest(unittest.TestCase):
         assert "0-3" == str(p2)
         p3 = Partition(1, 0)
         assert "1-0" == str(p3)
-        print Partition.partition_comp(p1,p2)
+        print(Partition.partition_comp(p1,p2))
         assert Partition.partition_comp(p1,p2) < 0
         assert Partition.partition_comp(p1,p3) < 0
         assert Partition.partition_comp(p2,p3) < 0
@@ -32,7 +33,7 @@ class PartitionTest(unittest.TestCase):
 class PartitionSelectorTest(unittest.TestCase):
     def runTest(self):
         f = get_round_robin_selector()
-        assert callable(f)
+        assert isinstance(f, collections.Callable)
         try:
             f("test",None,None)
         except _Error:
@@ -74,7 +75,7 @@ class ConnTest(unittest.TestCase):
         conn.send_msg("unknown\r\n")
         try:
             conn.readline()
-        except Exception,e:
+        except Exception as e:
             pass
         else:
             fail("connection must be closed by broker")
@@ -93,15 +94,15 @@ class ConnTest(unittest.TestCase):
         assert status == "200"
         assert opaque == "99\r\n"
         resp_body = conn.recv(int(vlen))
-        print resp_body
+        print(resp_body)
         conn.close()
 
 class MessageProducerTest(unittest.TestCase):
     def runTest(self):
         p = MessageProducer("meta-test")
-        print p._conn_dict
-        print p._broker_dict
-        print p._partition_list
+        print(p._conn_dict)
+        print(p._broker_dict)
+        print(p._partition_list)
         assert len(p._conn_dict) == 1
         assert len(p._broker_dict) == 1
         assert len(p._partition_list) == 1
@@ -119,7 +120,7 @@ class MessageProducerTest(unittest.TestCase):
 
         zk = p.zk
         topic_path = "%s/%s"%(p._broker_topic_path, "meta-test")
-        print p._safe_zk_get_children(topic_path, None)
+        print(p._safe_zk_get_children(topic_path, None))
         zk.delete("%s/0-m" % topic_path)
         time.sleep(1)
         assert len(p._conn_dict) == 0

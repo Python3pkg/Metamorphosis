@@ -6,8 +6,8 @@ import struct
 import sys
 import time
 import threading
-from zkclient import ZKClient, zookeeper, watchmethod
-from urlparse import urlparse
+from .zkclient import ZKClient, zookeeper, watchmethod
+from urllib.parse import urlparse
 from threading import Timer
 
 _DEAD_RETRY = 5  # number of seconds before retrying a dead server.
@@ -33,7 +33,7 @@ class Partition:
         return "%s-%s" % (self.broker_id, self.partition)
 
     def  partition_comp(x,y):    
-        if x.broker_id <> y.broker_id:
+        if x.broker_id != y.broker_id:
             return cmp(x.broker_id, y.broker_id)
         else:
             return cmp(x.partition, y.partition)
@@ -197,10 +197,10 @@ class Conn:
         parse_rt=urlparse(self.uri)
         try:
             s.connect((parse_rt.hostname, parse_rt.port))
-        except socket.timeout, msg:
+        except socket.timeout as msg:
             self.mark_dead("connect: %s" % msg)
             return None
-        except socket.error, msg:
+        except socket.error as msg:
             if isinstance(msg, tuple): msg = msg[1]
             self.mark_dead("connect: %s" % msg[1])
             return None
@@ -286,7 +286,7 @@ class MessageProducer:
         "Get path's data from zookeeper in safe mode"
         try:
             return self.zk.get(path)
-        except Exception, e:
+        except Exception as e:
             if count > 3:
                 raise
             else:
@@ -298,7 +298,7 @@ class MessageProducer:
         "Get path's children from zookeeper in safe mode"
         try:
             return self.zk.get_children(path, watcher)
-        except Exception, e:
+        except Exception as e:
             if count > 3:
                 raise
             else:
@@ -340,11 +340,11 @@ class MessageProducer:
             self._lock.release()
 
     def _update_conn_dict(self,new_broker_dict):
-        for broker_id in self._broker_dict.keys():
+        for broker_id in list(self._broker_dict.keys()):
             #broker is both in old dict and new dict
-            if new_broker_dict.get(broker_id) <> None:
+            if new_broker_dict.get(broker_id) != None:
                 #if broker uri changed
-                if new_broker_dict.get(broker_id).broker_uri <> self._broker_dict.get(broker_id).broker_uri:
+                if new_broker_dict.get(broker_id).broker_uri != self._broker_dict.get(broker_id).broker_uri:
                     conn = self._conn_dict.get(broker_id)
                     #close old connection
                     if conn is not None:
@@ -363,7 +363,7 @@ class MessageProducer:
                     self._debug("Closing %s" % (conn.uri))
                     conn.close()
 
-        for broker_id in new_broker_dict.keys():
+        for broker_id in list(new_broker_dict.keys()):
             #A new broker,we must connect it.
             if self._broker_dict.get(broker_id) is None:
                 new_uri = new_broker_dict.get(broker_id).broker_uri
@@ -389,7 +389,7 @@ class MessageProducer:
         if msg is None:
             raise _Error("Message is none") 
         topic = msg.topic
-        if topic <> self.topic:
+        if topic != self.topic:
             raise _Error("Expect topic %s,but was %s" % (self.topic, topic))
         data = msg.data
         if data == None:
@@ -412,20 +412,20 @@ class MessageProducer:
                 bodylen = int(bodylen)
                 resp_opaque = int(resp_opaque)
                 body = conn.recv(bodylen)
-                if  len(body) <> bodylen:
+                if  len(body) != bodylen:
                     conn.mark_dead("Response format error,expect body length is %s,but is %s" % (bodylen,len(body)))
                     return SendResult(False, None, -1, error="network error")
-                if resp_opaque <> opaque:
+                if resp_opaque != opaque:
                     conn.mark_dead("Response opaque is not equals to request opaque")
                     return SendResult(False, None, -1, error="network error")
                 if status == HttpStatus.Success:
                     msg_id, _, offset = body.split(" ")
-                    message.id = long(msg_id)
+                    message.id = int(msg_id)
                     message.partition = partition
-                    return SendResult(True, partition, long(offset))
+                    return SendResult(True, partition, int(offset))
                 else:
                     return SendResult(False, None, -1, error=body)
-            except (_Error, socket.error), msg:
+            except (_Error, socket.error) as msg:
                 if isinstance(msg, tuple): msg = msg[1]
                 conn.mark_dead(msg)
                 return SendResult(False, None, -1, error=msg)
@@ -438,14 +438,14 @@ class MessageProducer:
                 if conn.connect():
                     return _unsafe_send(cmd, msg)
                 return SendResult(False, None, -1, error="Connection was broken")
-            except (_ConnectionDeadError, socket.error), msg:
+            except (_ConnectionDeadError, socket.error) as msg:
                 conn.mark_dead(msg)
                 return SendResult(False, None, -1, error=msg)
 
     def _send_heartbeats(self):
         self._lock.acquire()
         try:
-            for conn in self._conn_dict.values():
+            for conn in list(self._conn_dict.values()):
                 if conn._check_idle():
                     try:
                         opaque = self._opaque.increase_and_get()
@@ -456,9 +456,9 @@ class MessageProducer:
                         bodylen = int(bodylen)
                         resp_opaque = int(resp_opaque)
                         body = conn.recv(bodylen)
-                        if  len(body) <> bodylen:
+                        if  len(body) != bodylen:
                             conn.mark_dead("Response format error,expect body length is %s,but is %s" % (bodylen,len(body)))
-                        if resp_opaque <> opaque:
+                        if resp_opaque != opaque:
                             conn.mark_dead("Response opaque is not equals to request opaque")
                         if status != HttpStatus.Success:
                             conn.mark_dead("Heartbeat failure")
@@ -480,7 +480,7 @@ class MessageProducer:
         try:
             if self.idle_timer:
                 self.idle_timer.cancel()
-            for conn in self._conn_dict.values():
+            for conn in list(self._conn_dict.values()):
                 conn.close()
             self._conn_dict = {}
         finally:
@@ -490,5 +490,5 @@ class MessageProducer:
 if __name__ == '__main__':
     p = MessageProducer("avos-fetch-tasks",zk_root="/avos-fetch-meta")
     message = Message("avos-fetch-tasks","http://www.taobao.com")
-    print p.send(message)
+    print(p.send(message))
     p.close()
